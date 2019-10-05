@@ -4,31 +4,36 @@ import numpy as np
 def binary_train(X, y, loss="perceptron", w0=None, b0=None, step_size=0.5, max_iterations=1000):
     """
     Inputs:
-    - X: training features, a N-by-D numpy array, where N is the 
+    - X: training features, a N-by-D numpy array, where N is the
     number of training points and D is the dimensionality of features
-    - y: binary training labels, a N dimensional numpy array where 
-    N is the number of training points, indicating the labels of 
+    - y: binary training labels, a N dimensional numpy array where
+    N is the number of training points, indicating the labels of
     training data
     - loss: loss type, either perceptron or logistic
     - step_size: step size (learning rate)
 	- max_iterations: number of iterations to perform gradient descent
 
     Returns:
-    - w: D-dimensional vector, a numpy array which is the weight 
+    - w: D-dimensional vector, a numpy array which is the weight
     vector of logistic or perceptron regression
     - b: scalar, which is the bias of logistic or perceptron regression
     """
     N, D = X.shape
     assert len(np.unique(y)) == 2
 
-
     w = np.zeros(D)
     if w0 is not None:
         w = w0
-    
+
     b = 0
     if b0 is not None:
         b = b0
+
+    X = np.array(X)
+    y = np.array(y)
+    y[y == 0] = -1  # Convert all 0 class labels to -1 to use formula taught in lecture
+    X_with_X0 = np.insert(X, 0, 1, axis=1)
+    w_with_w0 = np.insert(w, 0, 0)
 
     if loss == "perceptron":
         ############################################
@@ -36,8 +41,31 @@ def binary_train(X, y, loss="perceptron", w0=None, b0=None, step_size=0.5, max_i
         #          Compute w and b here            #
         w = np.zeros(D)
         b = 0
+
+        average_learning_rate = step_size / N
+
+        for i in range(max_iterations):
+            # X -> (350, 3)
+            # y -> (350, 1)
+            # w -> (3,) numpy array
+
+            predictions = np.dot(X_with_X0, w_with_w0)  # wTX   -> here it doesn't matter if we do X.w or X.wT because w is of shape (D,) and wT is also same
+            indicators = np.multiply(y, predictions)    # yn * wTX
+            indicators = np.where(indicators <= 0, 1, 0)    # (350, 1)  -> Transform all misclassified labels: Indicator function
+            # gradient_w = sum (indicator <= 0 * y * X)
+            product = np.multiply(indicators, y)    # Indicator * y
+            gradient_w = np.dot(product, X_with_X0)  # Indicator * y * X
+            w_with_w0 += average_learning_rate * gradient_w   # w <- w + gradient_w
+            # XTy = np.multiply(X_with_X0, y)    # (3, 350)
+            # # print(XTy.shape)
+            # individual_gradient = np.matmul(XTy, indicators)
+            # # print(individual_gradient.shape)
+            # gradient = np.sum(individual_gradient)
+            # w_with_w0 += average_learning_rate * gradient
+
+        w = w_with_w0[1:]
+        b = w_with_w0[0]
         ############################################
-        
 
     elif loss == "logistic":
         ############################################
@@ -45,21 +73,51 @@ def binary_train(X, y, loss="perceptron", w0=None, b0=None, step_size=0.5, max_i
         #          Compute w and b here            #
         w = np.zeros(D)
         b = 0
-        ############################################
-        
+        average_learning_rate = step_size / N
+        # while max_iterations != 0:
+        #     w <- w + (lambda / N) * sigmoid(-yn * wT * xn) * yn * xn
+            # predictions = np.dot(X_with_X0, w_with_w0)
+            # gradient = np.zeros(D + 1)
+            # z = None
+            # for i in range(len(y)):
+            #     z = y[i] * predictions[i]
+            #     sigm = sigmoid(-z)
+            #     gradient += sigm * np.multiply(np.transpose(X_with_X0[i]), y[i])
+            # w_with_w0 += step_size * gradient / N
+            # max_iterations -= 1
+
+        # w = w_with_w0[1:]
+        # b = w_with_w0[0]
+
+        # for i in range(max_iterations):
+        #     error = sigmoid(w.dot(X.T) + b) - y
+        #     w_gradient = error.dot(X) / N
+        #     b_gradient = np.sum(error) / N
+        #     w -= step_size * w_gradient
+        #     b -= step_size * b_gradient
+        for i in range(max_iterations):
+            predictions = np.dot(X_with_X0, w_with_w0)
+            y_preds = np.multiply(y, predictions)
+            z = sigmoid(-1 * y_preds)
+            z_y = np.multiply(z, y)
+            gradient_w = np.dot(z_y, X_with_X0)
+            w_with_w0 += average_learning_rate * gradient_w
+
+        w = w_with_w0[1:]
+        b = w_with_w0[0]
 
     else:
-        raise "Loss Function is undefined."
+        raise Exception("Loss Function is undefined.")
 
     assert w.shape == (D,)
     return w, b
 
+
 def sigmoid(z):
-    
     """
     Inputs:
     - z: a numpy array or a float number
-    
+
     Returns:
     - value: a numpy array or a float number after computing sigmoid function value = 1/(1+exp(-z)).
     """
@@ -67,63 +125,69 @@ def sigmoid(z):
     ############################################
     # TODO 3 : Edit this part to               #
     #          Compute value                   #
-    value = z
+    return 1 / (1 + np.exp(-z))
     ############################################
-    
-    return value
+
 
 def binary_predict(X, w, b, loss="perceptron"):
     """
     Inputs:
-    - X: testing features, a N-by-D numpy array, where N is the 
+    - X: testing features, a N-by-D numpy array, where N is the
     number of training points and D is the dimensionality of features
-    - w: D-dimensional vector, a numpy array which is the weight 
+    - w: D-dimensional vector, a numpy array which is the weight
     vector of your learned model
     - b: scalar, which is the bias of your model
     - loss: loss type, either perceptron or logistic
-    
+
     Returns:
     - preds: N dimensional vector of binary predictions: {0, 1}
     """
     N, D = X.shape
-    
+
     if loss == "perceptron":
         ############################################
         # TODO 4 : Edit this if part               #
         #          Compute preds                   #
-        preds = np.zeros(N)
+        preds = np.dot(X, w) + b
+        preds = np.where(preds > 0, 1, 0)
+        # preds[preds > 0] = 1
+        # preds[preds <= 0] = 0
+        return preds
         ############################################
-        
+
 
     elif loss == "logistic":
         ############################################
         # TODO 5 : Edit this if part               #
         #          Compute preds                   #
-        preds = np.zeros(N)
+        preds = np.dot(X, w) + b
+        preds = sigmoid(preds)
+        preds = np.where(preds > 0.5, 1, 0)
+        # preds[preds > 0.5] = 1
+        # preds[preds <= 0.5] = 0
+        return preds
         ############################################
-        
+
 
     else:
-        raise "Loss Function is undefined."
-    
+        raise Exception("Loss Function is undefined.")
 
-    assert preds.shape == (N,) 
+    assert preds.shape == (N,)
     return preds
 
 
-
 def multiclass_train(X, y, C,
-                     w0=None, 
+                     w0=None,
                      b0=None,
                      gd_type="sgd",
-                     step_size=0.5, 
+                     step_size=0.5,
                      max_iterations=1000):
     """
     Inputs:
-    - X: training features, a N-by-D numpy array, where N is the 
+    - X: training features, a N-by-D numpy array, where N is the
     number of training points and D is the dimensionality of features
     - y: multiclass training labels, a N dimensional numpy array where
-    N is the number of training points, indicating the labels of 
+    N is the number of training points, indicating the labels of
     training data
     - C: number of classes in the data
     - gd_type: gradient descent type, either GD or SGD
@@ -131,7 +195,7 @@ def multiclass_train(X, y, C,
     - max_iterations: number of iterations to perform gradient descent
 
     Returns:
-    - w: C-by-D weight matrix of multinomial logistic regression, where 
+    - w: C-by-D weight matrix of multinomial logistic regression, where
     C is the number of classes and D is the dimensionality of features.
     - b: bias vector of length C, where C is the number of classes
     """
@@ -141,7 +205,7 @@ def multiclass_train(X, y, C,
     w = np.zeros((C, D))
     if w0 is not None:
         w = w0
-    
+
     b = np.zeros(C)
     if b0 is not None:
         b = b0
@@ -154,7 +218,7 @@ def multiclass_train(X, y, C,
         w = np.zeros((C, D))
         b = np.zeros(C)
         ############################################
-        
+
 
     elif gd_type == "gd":
         ############################################
@@ -163,11 +227,10 @@ def multiclass_train(X, y, C,
         w = np.zeros((C, D))
         b = np.zeros(C)
         ############################################
-        
+
 
     else:
-        raise "Type of Gradient Descent is undefined."
-    
+        raise Exception("Type of Gradient Descent is undefined.")
 
     assert w.shape == (C, D)
     assert b.shape == (C,)
@@ -178,11 +241,11 @@ def multiclass_train(X, y, C,
 def multiclass_predict(X, w, b):
     """
     Inputs:
-    - X: testing features, a N-by-D numpy array, where N is the 
+    - X: testing features, a N-by-D numpy array, where N is the
     number of training points and D is the dimensionality of features
-    - w: weights of the trained multinomial classifier, C-by-D 
+    - w: weights of the trained multinomial classifier, C-by-D
     - b: bias terms of the trained multinomial classifier, length of C
-    
+
     Returns:
     - preds: N dimensional vector of multiclass predictions.
     Outputted predictions should be from {0, C - 1}, where
@@ -197,8 +260,3 @@ def multiclass_predict(X, w, b):
 
     assert preds.shape == (N,)
     return preds
-
-
-
-
-        
