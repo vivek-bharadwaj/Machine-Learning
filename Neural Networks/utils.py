@@ -12,6 +12,7 @@ If our script cannot run your code or the format is improper, your code will not
 # Softmax loss and Softmax gradient
 ### Loss functions ###
 
+
 class softmax_cross_entropy:
     def __init__(self):
         self.expand_Y = None
