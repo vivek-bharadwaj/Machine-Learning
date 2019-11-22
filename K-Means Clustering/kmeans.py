@@ -76,10 +76,11 @@ class KMeans():
             Finds n_cluster in the data x
             params:
                 x - N X D numpy array
-                centroid_func - To specify which algorithm we are using to compute the centers(Lloyd(regular) or Kmeans++)
+                centroid_func - To specify which algorithm we are using to compute the centers(Lloyd(regular) or K-means++)
             returns:
                 A tuple
-                (centroids a n_cluster X D numpy array, y a length (N,) numpy array where cell i is the ith sample's assigned cluster, number_of_updates a Int)
+                (centroids a n_cluster X D numpy array, y a length (N,) numpy array where cell i is the ith sample's
+                assigned cluster, number_of_updates a Int)
             Note: Number of iterations is the number of time you update the assignment
         """
         assert len(x.shape) == 2, "fit function takes 2-D numpy arrays as input"
@@ -94,9 +95,39 @@ class KMeans():
         # - Update means and membership until convergence or until you have made self.max_iter updates.
         # - return (means, membership, number_of_updates)
 
-        # DONOT CHANGE CODE ABOVE THIS LINE
-        raise Exception(
-            'Implement fit function in KMeans class')
+        # DO NOT CHANGE CODE ABOVE THIS LINE
+
+        K = self.n_cluster      # Number of clusters
+        centroids = np.zeros((K, D))
+        y = np.zeros((N,), dtype=int)
+
+        # Initialize step
+        centroids = x[self.centers]     # Means set randomly
+        J = 10 ** 10
+
+        # Repeat step
+        for i in range(self.max_iter):
+            # Compute L2 norm squared distance between each point and centroids by transforming centroids to 3-D
+            distance_to_centroids = np.array((x - centroids[:, None]) ** 2)     # New shape: (K, N, D)
+            sum_of_squares = np.sum(distance_to_centroids, axis=2)          # Compute sum along 3rd axis, shape: (K, N)
+            assignments = np.argmin(sum_of_squares, axis=0)                 # y
+            y = assignments
+
+            # Compute Distortion J_new
+            inner_sum = [np.sum((x[assignments == k] - centroids[k]) ** 2) for k in range(K)]
+            outer_sum = np.divide(np.sum(inner_sum), N)
+            J_New = outer_sum
+
+            if np.abs(J - J_New) <= self.e:
+                break
+
+            # Set J := J_New
+            J = J_New
+
+            # Compute Centroids (mean)
+            with np.errstate(divide='ignore'):
+                means = np.array([np.nanmean(x[y == k].T, axis=1) for k in range(K)])
+                centroids = means
 
         # DO NOT CHANGE CODE BELOW THIS LINE
         return centroids, y, self.max_iter
