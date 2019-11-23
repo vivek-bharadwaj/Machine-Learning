@@ -70,6 +70,7 @@ class KMeans():
         self.max_iter = max_iter
         self.e = e
         self.generator = generator
+        self.centers = None
 
     def fit(self, x, centroid_func=get_lloyd_k_means):
         """
@@ -102,8 +103,9 @@ class KMeans():
         y = np.zeros((N,), dtype=int)
 
         # Initialize step
-        centroids = x[self.centers]     # Means set randomly
+        centroids = x[np.random.choice(N, self.n_cluster, replace=True)]     # Means set randomly
         J = 10 ** 10
+        i = 0
 
         # Repeat step
         for i in range(self.max_iter):
@@ -126,11 +128,13 @@ class KMeans():
 
             # Compute Centroids (mean)
             with np.errstate(divide='ignore'):
-                means = np.array([np.nanmean(x[y == k].T, axis=1) for k in range(K)])
+                means = np.array([np.nanmean(np.transpose(x[y == k]), axis=1) for k in range(K)])
+                nan_index = np.where(np.isnan(means))
+                means[nan_index] = centroids[nan_index]
                 centroids = means
 
         # DO NOT CHANGE CODE BELOW THIS LINE
-        return centroids, y, self.max_iter
+        return centroids, y, i
 
 
 class KMeansClassifier():
@@ -150,6 +154,8 @@ class KMeansClassifier():
         self.max_iter = max_iter
         self.e = e
         self.generator = generator
+        self.centroid_labels = None
+        self.centroids = None
 
     def fit(self, x, y, centroid_func=get_lloyd_k_means):
         """
@@ -180,8 +186,21 @@ class KMeansClassifier():
         # - assign labels to centroid_labels
 
         # DO NOT CHANGE CODE ABOVE THIS LINE
-        raise Exception(
-            'Implement fit function in KMeansClassifier class')
+        k_means = KMeans(n_cluster=self.n_cluster, max_iter=self.max_iter, e=self.e)
+        centroids, membership, num_iterations = k_means.fit(x)
+
+        centroid_labels = list()
+        K = self.n_cluster
+
+        members_of_cluster_k = [y[membership == k] for k in range(K)]
+        # print(members_of_cluster_k)
+        for cluster in members_of_cluster_k:
+            if len(cluster) != 0:
+                votes = np.argmax(np.bincount(cluster))
+                centroid_labels.append(votes.item())
+            else:
+                centroid_labels.append(0)
+        centroid_labels = np.array(centroid_labels)
 
         # DO NOT CHANGE CODE BELOW THIS LINE
 
@@ -213,22 +232,24 @@ class KMeansClassifier():
         # - return labels
 
         # DO NOT CHANGE CODE ABOVE THIS LINE
-        raise Exception(
-            'Implement predict function in KMeansClassifier class')
+        distance_to_centroids = np.array((x - self.centroids[:, None]) ** 2)  # New shape: (K, N, D)
+        sum_of_squares = np.sum(distance_to_centroids, axis=2)  # Compute sum along 3rd axis, shape: (K, N)
+        assignments = np.argmin(sum_of_squares, axis=0)
+        labels = self.centroid_labels[assignments]
 
         # DO NOT CHANGE CODE BELOW THIS LINE
         return np.array(labels)
 
 
 def transform_image(image, code_vectors):
-    '''
+    """
         Quantize image using the code_vectors
 
         Return new image from the image by replacing each RGB value in image with nearest code vectors (nearest in euclidean distance sense)
 
         returns:
             numpy array of shape image.shape
-    '''
+    """
 
     assert image.shape[2] == 3 and len(image.shape) == 3, \
         'Image should be a 3-D array with size (?,?,3)'
@@ -241,8 +262,7 @@ def transform_image(image, code_vectors):
     # - implement the function
 
     # DO NOT CHANGE CODE ABOVE THIS LINE
-    raise Exception(
-        'Implement transform_image function')
+    new_im = None
 
     # DO NOT CHANGE CODE BELOW THIS LINE
     return new_im
