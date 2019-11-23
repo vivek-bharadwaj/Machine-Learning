@@ -237,6 +237,9 @@ class KMeansClassifier():
         assignments = np.argmin(sum_of_squares, axis=0)
         labels = self.centroid_labels[assignments]
 
+        # assignments = np.argmin(np.sum((x - self.centroids[:, None]) ** 2, axis=2), axis=0)
+        # labels = self.centroid_labels[assignments]
+
         # DO NOT CHANGE CODE BELOW THIS LINE
         return np.array(labels)
 
@@ -262,7 +265,15 @@ def transform_image(image, code_vectors):
     # - implement the function
 
     # DO NOT CHANGE CODE ABOVE THIS LINE
-    new_im = None
+
+    M, N, K = image.shape
+    image_2d = image.reshape(M * N, K)
+    code_vectors = np.array(code_vectors)
+
+    euclidean_distances = np.sum((image_2d - code_vectors[:, None]) ** 2, axis=2)
+    assignments = np.argmin(euclidean_distances, axis=0)
+    new_im = code_vectors[assignments]
+    new_im = new_im.reshape(M, N, K)
 
     # DO NOT CHANGE CODE BELOW THIS LINE
     return new_im
