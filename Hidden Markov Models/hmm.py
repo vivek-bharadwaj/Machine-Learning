@@ -77,6 +77,9 @@ class HMM:
         prob = 0
         ###################################################
         # Edit here
+        L = len(obs_sequence)
+        alpha = self.forward(obs_sequence)
+        prob = np.sum(alpha[:, L - 1])
         ###################################################
         return prob
 
