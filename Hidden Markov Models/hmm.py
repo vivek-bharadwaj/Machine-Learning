@@ -96,6 +96,11 @@ class HMM:
         prob = np.zeros([S, L])
         ###################################################
         # Edit here
+        alpha = self.forward(obs_sequence)
+        beta = self.backward(obs_sequence)
+        prior_probability = np.sum(alpha[:, L - 1])
+
+        prob = (alpha * beta) / prior_probability
         ###################################################
         return prob
 
