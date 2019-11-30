@@ -46,8 +46,8 @@ class HMM:
     def backward(self, obs_sequence):
         """
         Inputs:
-        - self.pi: (1*num_state) A numpy array of initial probailities. pi[i] = P(Z_1 = s_i)
-        - self.A: (num_state*num_state) A numpy array of transition probailities. A[i, j] = P(Z_t = s_j|Z_t-1 = s_i)
+        - self.pi: (1*num_state) A numpy array of initial probabilities. pi[i] = P(Z_1 = s_i)
+        - self.A: (num_state*num_state) A numpy array of transition probabilities. A[i, j] = P(Z_t = s_j|Z_t-1 = s_i)
         - self.B: (num_state*num_obs_symbol) A numpy array of observation probabilities. B[i, k] = P(X_t = o_k| Z_t = s_i)
         - obs_sequence: (1*L) A numpy array of observation sequence with length L
 
@@ -59,6 +59,10 @@ class HMM:
         beta = np.zeros([S, L])
         ###################################################
         # Edit here
+        beta[:, L-1] = 1
+
+        for t in reversed(range(0, L-1)):
+            beta[:, t] = np.matmul(self.A, np.multiply(self.B[:, self.obs_dict[obs_sequence[t + 1]]], beta[:, t + 1]))
         ###################################################
         return beta
 
@@ -91,7 +95,8 @@ class HMM:
         # Edit here
         ###################################################
         return prob
-    #TODO:
+
+    # TODO:
     def likelihood_prob(self, obs_sequence):
         """
         Inputs:
