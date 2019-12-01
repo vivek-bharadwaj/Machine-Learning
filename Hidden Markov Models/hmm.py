@@ -104,7 +104,6 @@ class HMM:
         ###################################################
         return prob
 
-    # TODO:
     def likelihood_prob(self, obs_sequence):
         """
         Inputs:
@@ -120,7 +119,7 @@ class HMM:
         # Edit here
         alpha = self.forward(obs_sequence)
         beta = self.backward(obs_sequence)
-        prior_probability = np.sum(alpha[:, L - 1])
+        prior_probability = np.sum(alpha[:, L - 1])         # sequence_prob
 
         for t in range(0, L-1):
             for s1 in range(S):
@@ -142,5 +141,26 @@ class HMM:
         path = []
         ###################################################
         # Q3.3 Edit here
+        num_states = len(self.pi)
+        seq_len = len(obs_sequence)
+        delta = np.zeros([num_states, seq_len])
+        Delta = np.zeros_like(delta)
+        states_dict_reversed = {v: k for k, v in self.state_dict.items()}
+
+        # for each state, initialize delta_s(1) = pi_s * b_s_o1
+        delta[:, 0] = self.pi * self.B[:, self.obs_dict[obs_sequence[0]]]
+
+        for t in range(1, seq_len):
+            delta[:, t] = np.multiply(self.B[:, self.obs_dict[obs_sequence[t]]], np.max(np.multiply(np.transpose(self.A), delta[:, t-1]), axis=1))
+            Delta[:, t] = np.argmax(np.multiply(np.transpose(self.A), delta[:, t-1]), axis=1)
+
+        # oT* = argmax(delta_s(T))
+        most_likely_outcome = np.argmax(delta[:, seq_len - 1])
+        path.append(states_dict_reversed[most_likely_outcome])
+
+        for t in reversed(range(1, seq_len)):
+            most_likely_outcome = int(Delta[most_likely_outcome, t])
+            path.append(states_dict_reversed[most_likely_outcome])
         ###################################################
-        return path
+        most_likely_path = path[::-1]
+        return most_likely_path
