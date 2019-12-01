@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def accuracy(predict_tagging, true_tagging):
 	if len(predict_tagging) != len(true_tagging):
 		return 0, 0, 0
